@@ -1,3 +1,7 @@
+import os
+os.environ.setdefault('LLM_STUB', '1')
+os.environ.setdefault('LLM_ENABLED', 'true')
+
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -7,9 +11,7 @@ def test_health():
     response = client.get('/health')
     assert response.status_code == 200
 
-def test_triage_contract(monkeypatch):
-    monkeypatch.setenv('LLM_STUB','1')
-    monkeypatch.setenv('LLM_ENABLED','true')
+def test_triage_contract():
     response = client.post('/triage', json={'text':'I was charged twice'})
     assert response.status_code == 200
     body = response.json()
