@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from .config import settings
 from .models import TriageResponse, Category, Urgency
-from .provider import get_provider, ProviderError
+from .provider import get_provider
 
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "triage_v1.txt"
 LOG_DIR = Path(__file__).resolve().parent.parent / "logs"
@@ -27,15 +27,28 @@ def parse_model_output(raw: str) -> TriageResponse:
     except Exception as exc:
         raise ValidationFailure(str(exc)) from exc
 
+def call_cost(meta: dict) -> float:
+    input_tokens = meta.get("input_tokens", 0) or 0
+    output_tokens = meta.get("output_tokens", 0) or 0
+    return round((input_tokens * settings.input_cost_per_1m + output_tokens * settings.output_cost_per_1m) / 1_000_000, 8)
+
 def log_call(meta: dict, repair_count: int) -> None:
-    entry = {"prompt_version":settings.prompt_version,"model":meta.get("model"),"input_tokens":meta.get("input_tokens",0),"output_tokens":meta.get("output_tokens",0),"duration_ms":meta.get("duration_ms",0),"repair_count":repair_count}
+    entry = {
+        "prompt_version": settings.prompt_version,
+        "model": meta.get("model"),
+        "input_tokens": meta.get("input_tokens", 0),
+        "output_tokens": meta.get("output_tokens", 0),
+        "duration_ms": meta.get("duration_ms", 0),
+        "repair_count": repair_count,
+        "estimated_cost_usd": call_cost(meta),
+    }
     with CALL_LOG.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False)+"\n")
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 def quarantine(text: str, raw: str, error: str) -> None:
-    entry = {"input":text,"raw_model_output":raw,"error":error,"prompt_version":settings.prompt_version}
+    entry = {"input": text, "raw_model_output": raw, "error": error, "prompt_version": settings.prompt_version}
     with QUARANTINE.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False)+"\n")
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 def deterministic_fallback() -> TriageResponse:
     return TriageResponse(category=Category.other, urgency=Urgency.low, confidence=0.1, reason="The LLM is disabled, so no confident category was assigned.")
@@ -47,7 +60,7 @@ def triage(text: str) -> TriageResponse:
     prompt = load_prompt()
     started = time.perf_counter()
     raw, meta = provider.complete(prompt, text)
-    meta.setdefault("duration_ms", round((time.perf_counter()-started)*1000))
+    meta.setdefault("duration_ms", round((time.perf_counter() - started) * 1000))
     try:
         result = parse_model_output(raw)
         log_call(meta, 0)
@@ -55,7 +68,7 @@ def triage(text: str) -> TriageResponse:
     except ValidationFailure as first_error:
         repair_prompt = prompt + "\nYour previous answer was invalid. Return only a valid JSON object matching the exact schema. Do not explain your correction."
         repair_raw, repair_meta = provider.complete(repair_prompt, text)
-        repair_meta.setdefault("duration_ms", round((time.perf_counter()-started)*1000))
+        repair_meta.setdefault("duration_ms", round((time.perf_counter() - started) * 1000))
         try:
             result = parse_model_output(repair_raw)
             log_call(repair_meta, 1)
