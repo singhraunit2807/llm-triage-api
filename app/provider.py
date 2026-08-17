@@ -20,9 +20,9 @@ class StubProvider:
         t = text.lower()
         if any(x in t for x in ["charged", "charge", "invoice", "refund", "payment", "subscription"]):
             result = {"category":"billing","urgency":"normal","confidence":0.97,"reason":"The message concerns a billing or payment issue."}
-        elif any(x in t for x in ["outage", "500", "down for everyone", "security breach", "data loss", "every user"]):
+        elif any(x in t for x in ["outage", "down for everyone", "security breach", "data loss", "every user"]):
             result = {"category":"bug","urgency":"high","confidence":0.98,"reason":"The message describes a severe product failure."}
-        elif any(x in t for x in ["error", "crash", "broken", "not working", "fails", "failed"]):
+        elif any(x in t for x in ["error", "500", "crash", "broken", "not working", "fails", "failed"]):
             result = {"category":"bug","urgency":"normal","confidence":0.96,"reason":"The message describes an existing product problem."}
         elif any(x in t for x in ["please add", "would like", "feature", "support", "can you add", "request"]):
             result = {"category":"feature","urgency":"low","confidence":0.92,"reason":"The message asks for a new capability or improvement."}
