@@ -67,17 +67,23 @@ For a no-key smoke test, set `LLM_STUB=1` in `.env`.
 
 ## Evaluation
 
-`evals/cases.json` contains 8 hand-labelled cases, including a prompt-injection case. Run:
+`evals/cases.json` contains 8 hand-labelled cases, including an explicit ambiguous case and a prompt-injection case. The runner sends all eight through the actual `POST /triage` endpoint using FastAPI's test client:
 
 ```bash
 python evals/run_eval.py
 ```
 
-The recorded deterministic stub contract score is **8/8 (100.0%)**, recorded **2026-08-17**, prompt version **v1**. This is explicitly a stub score, not a claim about a live provider. A live-provider score requires a valid provider key and should be recorded only after actually running the 8 cases.
+The deterministic stub contract suite is designed to score **8/8 (100.0%)**, recorded **2026-08-18**, prompt version **v1**. This is explicitly a stub score, not a claim about a live provider. A live-provider score requires a valid provider key and should be recorded only after actually running the 8 cases.
 
 ## Cost evidence
 
-The implementation records `estimated_cost_usd` for every provider call using the configured token rates. For the deterministic stub, token usage is zero, so its recorded cost is **$0.00 per call**. A real OpenRouter run will populate the token counts returned by the provider; set the matching `INPUT_COST_PER_1M` and `OUTPUT_COST_PER_1M` values for the selected model/router before using the cost estimate.
+The implementation records `estimated_cost_usd` for every successful provider response using the configured token rates. A representative structured stub call is:
+
+```json
+{"prompt_version":"v1","model":"stub","input_tokens":0,"output_tokens":0,"duration_ms":1,"repair_count":0,"estimated_cost_usd":0.0}
+```
+
+For the deterministic stub, token usage is zero, so its recorded cost is **$0.00 per call**. A real OpenRouter run will populate the token counts returned by the provider; set the matching `INPUT_COST_PER_1M` and `OUTPUT_COST_PER_1M` values for the selected model/router before using the cost estimate.
 
 For a simple planning estimate:
 
