@@ -15,5 +15,7 @@ class Settings:
     max_retries: int = max(0, int(os.getenv("MAX_RETRIES", "2")))
     prompt_version: str = os.getenv("PROMPT_VERSION", "v1")
     max_input_chars: int = min(int(os.getenv("MAX_INPUT_CHARS", "2000")), 2000)
+    input_cost_per_1m: float = max(0.0, float(os.getenv("INPUT_COST_PER_1M", "0")))
+    output_cost_per_1m: float = max(0.0, float(os.getenv("OUTPUT_COST_PER_1M", "0")))
 
 settings = Settings()
